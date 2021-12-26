@@ -1,3 +1,4 @@
+import typing_extensions
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
@@ -5,14 +6,19 @@ from airflow.contrib.hooks.aws_hook import AwsHook
 
 class StageToRedshiftOperator(BaseOperator):
     ui_color = '#358140'
-    template_fields = ("s3_key",)
-    copy_sql = """
-        COPY {}
-        FROM '{}'
-        ACCESS_KEY_ID '{}'
-        SECRET_ACCESS_KEY '{}'
-        IGNOREHEADER {}
-        DELIMITER '{}'
+    events_copy_sql = """
+        COPY {table}
+        FROM '{s3_directory}'
+        ACCESS_KEY_ID '{access_key}'
+        SECRET_ACCESS_KEY '{secret_key}'
+        JSON 's3://udacity-dend/log_json_path.json' COMPUPDATE ON REGION 'us-west-2'
+    """
+    songs_copy_sql = """
+        COPY {table}
+        FROM '{s3_directory}'
+        ACCESS_KEY_ID '{access_key}'
+        SECRET_ACCESS_KEY '{secret_key}'
+        JSON 'auto' COMPUPDATE OFF REGION 'us-west-2'
     """
 
     @apply_defaults
@@ -22,21 +28,13 @@ class StageToRedshiftOperator(BaseOperator):
                 table="",
                 s3_bucket="",
                 s3_key="",
-                delimiter=",",
-                ignore_headers=1,
                 *args, **kwargs):
-
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
-        # Map params here
-        # Example:
-        # self.conn_id = conn_id
         self.redshift_conn_id=redshift_conn_id
         self.aws_credentials_id=aws_credentials_id
         self.table=table
         self.s3_bucket=s3_bucket
         self.s3_key=s3_key
-        self.delimiter=delimiter
-        self.ignore_headers=ignore_headers
 
     def execute(self, context):
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -49,12 +47,20 @@ class StageToRedshiftOperator(BaseOperator):
         self.log.info("Copying data from S3 to Redshift")
         rendered_key = self.s3_key.format(**context)
         s3_path = "s3://{}/{}".format(self.s3_bucket, rendered_key)
-        formatted_sql = StageToRedshiftOperator.copyj_sql.format(
-            self.table,
-            s3_path,
-            credentials.access_key,
-            credentials.secret_key,
-            self.ignore_headers,
-            self.delimiter
-        )
+        if self.table == "staging_events":
+            formatted_sql = StageToRedshiftOperator.events_copy_sql.format(
+                self.table,
+                s3_path,
+                credentials.access_key,
+                credentials.secret_key)
+        elif self.table == "staging_songs":
+            formatted_sql = StageToRedshiftOperator.songs_copy_sql.format(
+                self.table,
+                s3_path,
+                credentials.access_key,
+                credentials.secret_key)
+        else:
+            self.log.info("Data import failed.")
+
         redshift.run(formatted_sql)
+        self.log.info("Data import to {} was successful".format(self.table))
