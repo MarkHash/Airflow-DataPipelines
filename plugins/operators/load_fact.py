@@ -10,7 +10,6 @@ class LoadFactOperator(BaseOperator):
     @apply_defaults
     def __init__(self,
                  redshift_conn_id="",
-                 aws_credentials_id="",
                  table="",
                  create_table_sql="",
                  insert_sql="",
@@ -18,14 +17,11 @@ class LoadFactOperator(BaseOperator):
 
         super(LoadFactOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
-        self.aws_credentials_id = aws_credentials_id
         self.table = table
         self.create_table_sql = create_table_sql
         self.insert_sql = insert_sql
 
     def execute(self, context):
-        aws_hook = AwsHook(self.aws_credentials_id)
-        credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
         redshift.run(self.create_table_sql)
