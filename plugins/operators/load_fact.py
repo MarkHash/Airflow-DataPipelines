@@ -1,7 +1,6 @@
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from plugins.helpers import sql_queries
 
 class LoadFactOperator(BaseOperator):
     ui_color = '#F98866'
@@ -20,9 +19,6 @@ class LoadFactOperator(BaseOperator):
 
     def execute(self, context):
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
-
-        self.log.info("Clearing data from destination Redshift table")
-        redshift.run("DELETE FROM {}".format(self.table))
 
         self.log.info("Inserting data to songplays table")
         redshift.run(self.insert_sql)

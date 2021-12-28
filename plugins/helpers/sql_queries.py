@@ -1,6 +1,6 @@
 class SqlQueries:
     songplay_table_insert = ("""
-        INSERT INTO songplays(start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+        INSERT INTO songplays
         SELECT
                 md5(events.sessionid || events.start_time) songplay_id,
                 events.start_time,
@@ -21,43 +21,43 @@ class SqlQueries:
     """)
 
     user_table_insert = ("""
-        INSERT INTO users(user_id, first_name, last_name, gender, level)
+        INSERT INTO users
         SELECT distinct userid, firstname, lastname, gender, level
         FROM staging_events
         WHERE page='NextSong'
     """)
 
     song_table_insert = ("""
-        INSERT INTO songs(song_id, title, artist_id, year, duration)
+        INSERT INTO songs
         SELECT distinct song_id, title, artist_id, year, duration
         FROM staging_songs
     """)
 
     artist_table_insert = ("""
-        INSERT INTO artists(artist_id, name, location, lattitude, longitude)
+        INSERT INTO artists
         SELECT distinct artist_id, artist_name, artist_location, artist_latitude, artist_longitude
         FROM staging_songs
     """)
 
     time_table_insert = ("""
-        INSERT INTO time(start_time, hour, day, week, month, year, weekday)
+        INSERT INTO time
         SELECT start_time, extract(hour from start_time), extract(day from start_time), extract(week from start_time), 
                extract(month from start_time), extract(year from start_time), extract(dayofweek from start_time)
         FROM songplays
     """)
 
     EVENTS_COPY_SQL = ("""
-    COPY {table}
-    FROM '{s3_directory}'
-    ACCESS_KEY_ID '{access_key}'
-    SECRET_ACCESS_KEY '{secret_key}'
+    COPY {}
+    FROM '{}'
+    ACCESS_KEY_ID '{}'
+    SECRET_ACCESS_KEY '{}'
     JSON 's3://udacity-dend/log_json_path.json' COMPUPDATE ON REGION 'us-west-2'
     """)
 
     SONGS_COPY_SQL = ("""
-    COPY {table}
-    FROM '{s3_directory}'
-    ACCESS_KEY_ID '{access_key}'
-    SECRET_ACCESS_KEY '{secret_key}'
+    COPY {}
+    FROM '{}'
+    ACCESS_KEY_ID '{}'
+    SECRET_ACCESS_KEY '{}'
     JSON 'auto' COMPUPDATE OFF REGION 'us-west-2'
     """)

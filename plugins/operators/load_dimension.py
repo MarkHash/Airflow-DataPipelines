@@ -1,7 +1,7 @@
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from plugins.helpers import sql_queries
+
 
 class LoadDimensionOperator(BaseOperator):
     ui_color = '#80BD9E'
@@ -27,6 +27,6 @@ class LoadDimensionOperator(BaseOperator):
         if self.append == False:
             redshift.run("DELETE FROM {}".format(self.table))
 
-        self.log.info("Inserting data to songplays table")
+        self.log.info("Inserting data to {} table".format(self.table))
         redshift.run(self.insert_sql)
         self.log.info("Inserting data to {} was successful".format(self.table))
