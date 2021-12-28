@@ -26,9 +26,6 @@ class StageToRedshiftOperator(BaseOperator):
         credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
-        self.log.info("Clearing data from destination Redshift table")
-        redshift.run("DELETE FROM {}".format(self.table))
-
         self.log.info("Copying data from S3 to Redshift")
         self.log.info("table: {}, s3_directory: {}, access_key: {}, secret_key: {}".format(self.table, self.s3_directory, credentials.access_key, credentials.secret_key))
         if self.table == "staging_events":
