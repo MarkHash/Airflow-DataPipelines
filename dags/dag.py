@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 import os
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators import (StageToRedshiftOperator, LoadFactOperator,
-                                LoadDimensionOperator, DataQualityOperator)
+from operators.stage_redshift import StageToRedshiftOperator
+from operators.load_fact import LoadFactOperator
+from operators.load_dimension import LoadDimensionOperator
+from operators.data_quality import DataQualityOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from helpers import SqlQueries
 
@@ -23,7 +25,8 @@ default_args = {
 dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 * * * *'
+          #schedule_interval='0 * * * *'
+          schedule_interval='@once'
         )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -41,8 +44,7 @@ stage_events_to_redshift = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="staging_events",
-    s3_bucket="udacity-dend",
-    s3_key="log_data"
+    s3_directory="s3://udacity-dend/log_data"
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
@@ -51,8 +53,7 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="staging_songs",
-    s3_bucket="udacity-dend",
-    s3_key="song_data"
+    s3_directory="s3://udacity-dend/song_data"
 )
 
 load_songplays_table = LoadFactOperator(
@@ -67,6 +68,7 @@ load_user_dimension_table = LoadDimensionOperator(
     dag=dag,
     redshift_conn_id="redshift",
     insert_sql=SqlQueries.user_table_insert,
+    table="users",
     append=False
 )
 
@@ -75,6 +77,7 @@ load_song_dimension_table = LoadDimensionOperator(
     dag=dag,
     redshift_conn_id="redshift",
     insert_sql=SqlQueries.song_table_insert,
+    table="songs",
     append=False
 )
 
@@ -83,6 +86,7 @@ load_artist_dimension_table = LoadDimensionOperator(
     dag=dag,
     redshift_conn_id="redshift",
     insert_sql=SqlQueries.artist_table_insert,
+    table="artists",
     append=False
 )
 
@@ -91,6 +95,7 @@ load_time_dimension_table = LoadDimensionOperator(
     dag=dag,
     redshift_conn_id="redshift",
     insert_sql=SqlQueries.time_table_insert,
+    table="time",
     append=False
 )
 
@@ -98,6 +103,13 @@ run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
     redshift_conn_id="redshift",
+    tables=[
+        "songplays",
+        "users",
+        "songs",
+        "artists",
+        "time"
+    ]
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
