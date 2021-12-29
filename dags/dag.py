@@ -109,7 +109,8 @@ run_quality_checks = DataQualityOperator(
         "songs",
         "artists",
         "time"
-    ]
+    ],
+    expected_result=0
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
