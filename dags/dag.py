@@ -103,14 +103,18 @@ run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
     redshift_conn_id="redshift",
-    tables=[
-        "songplays",
-        "users",
-        "songs",
-        "artists",
-        "time"
-    ],
-    expected_result=0
+    test_cases=[
+        {
+            'sql': 'SELECT COUNT(*) FROM songplays;',
+            'expected_result': 0,
+            'comparison': '>'
+        },
+        {
+            'sql': 'SELECT COUNT(*) FROM songplays WHERE songid IS NULL;',
+            'expected_result': 0,
+            'comparison': '=='
+        }
+    ]
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
